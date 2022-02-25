@@ -15,7 +15,7 @@ from mmdet3d.core import (Box3DMode, CameraInstance3DBoxes,
 from mmdet3d.core.bbox import get_box_type
 from mmdet3d.datasets.pipelines import Compose
 from mmdet3d.models import build_model
-
+from demo.prune_model import get_prune_model
 
 def convert_SyncBN(config):
     """Convert config's naiveSyncBN to BN.
@@ -33,7 +33,7 @@ def convert_SyncBN(config):
                 convert_SyncBN(config[item])
 
 
-def init_model(config, checkpoint=None, device='cuda:0'):
+def init_model(config, checkpoint=None, device='cuda:0', prune_model=False):
     """Initialize a model from config file, which could be a 3D detector or a
     3D segmentor.
 
@@ -56,6 +56,15 @@ def init_model(config, checkpoint=None, device='cuda:0'):
     convert_SyncBN(config.model)
     config.model.train_cfg = None
     model = build_model(config.model, test_cfg=config.get('test_cfg'))
+
+    if prune_model:
+        prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(config)
+        prune_pts_vfe.test = True
+        model.pts_voxel_encoder = prune_pts_vfe
+        model.pts_middle_encoder = pts_middle_encoder
+        model.pts_backbone = prune_pts_backbone
+        model.pts_neck = pts_neck
+
     if checkpoint is not None:
         checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
         if 'CLASSES' in checkpoint['meta']:

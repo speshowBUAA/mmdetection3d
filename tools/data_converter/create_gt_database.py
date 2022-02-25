@@ -187,7 +187,9 @@ def create_groundtruth_database(dataset_class_name,
                 dict(
                     type='LoadAnnotations3D',
                     with_bbox_3d=True,
-                    with_label_3d=True)
+                    with_label_3d=True),
+                # dict(type='PointsRangeFilter', point_cloud_range=[-25, -25, -5, 25, 25, 3]),
+                # dict(type='ObjectRangeFilter', point_cloud_range=[-25, -25, -5, 25, 25, 3])
             ])
 
     elif dataset_class_name == 'WaymoDataset':
@@ -240,7 +242,10 @@ def create_groundtruth_database(dataset_class_name,
         annos = example['ann_info']
         image_idx = example['sample_idx']
         points = example['points'].tensor.numpy()
-        gt_boxes_3d = annos['gt_bboxes_3d'].tensor.numpy()
+        if type(annos['gt_bboxes_3d']) is np.ndarray:
+            gt_boxes_3d = annos['gt_bboxes_3d']
+        else:
+            gt_boxes_3d = annos['gt_bboxes_3d'].tensor.numpy()
         names = annos['gt_names']
         group_dict = dict()
         if 'group_ids' in annos:

@@ -51,17 +51,17 @@ def _calculate_num_points_in_gt(data_path,
     for info in mmcv.track_iter_progress(infos):
         pc_info = info['point_cloud']
         image_info = info['image']
-        calib = info['calib']
         if relative_path:
             v_path = str(Path(data_path) / pc_info['velodyne_path'])
         else:
             v_path = pc_info['velodyne_path']
         points_v = np.fromfile(
             v_path, dtype=np.float32, count=-1).reshape([-1, num_features])
-        rect = calib['R0_rect']
-        Trv2c = calib['Tr_velo_to_cam']
-        P2 = calib['P2']
         if remove_outside:
+            calib = info['calib']
+            rect = calib['R0_rect']
+            Trv2c = calib['Tr_velo_to_cam']
+            P2 = calib['P2']
             points_v = box_np_ops.remove_outside_points(
                 points_v, rect, Trv2c, P2, image_info['image_shape'])
 
@@ -72,10 +72,12 @@ def _calculate_num_points_in_gt(data_path,
         dims = annos['dimensions'][:num_obj]
         loc = annos['location'][:num_obj]
         rots = annos['rotation_y'][:num_obj]
-        gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]],
-                                         axis=1)
-        gt_boxes_lidar = box_np_ops.box_camera_to_lidar(
-            gt_boxes_camera, rect, Trv2c)
+        # gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]],
+        #                                  axis=1)
+        gt_boxes_lidar = np.concatenate([loc, dims, rots[..., np.newaxis]],
+                                         axis=1)   # 自有数据标注点坐标是雷达坐标系下的
+        # gt_boxes_lidar = box_np_ops.box_camera_to_lidar(
+        #     gt_boxes_camera, rect, Trv2c)    # kitti中的标注点坐标是相机坐标系下的，要转到lidar坐标系下
         indices = box_np_ops.points_in_rbbox(points_v[:, :3], gt_boxes_lidar)
         num_points_in_gt = indices.sum(0)
         num_ignored = len(annos['dimensions']) - num_obj
@@ -108,25 +110,43 @@ def create_kitti_info_file(data_path,
         save_path = Path(data_path)
     else:
         save_path = Path(save_path)
+    # kitti_infos_train = get_kitti_image_info(
+    #     data_path,
+    #     training=True,
+    #     velodyne=True,
+    #     calib=True,
+    #     image_ids=train_img_ids,
+    #     relative_path=relative_path)
     kitti_infos_train = get_kitti_image_info(
         data_path,
         training=True,
         velodyne=True,
-        calib=True,
+        image=False,
+        calib=False,
         image_ids=train_img_ids,
-        relative_path=relative_path)
-    _calculate_num_points_in_gt(data_path, kitti_infos_train, relative_path)
+        relative_path=relative_path,
+        with_imageshape=False)
+    _calculate_num_points_in_gt(data_path, kitti_infos_train, relative_path, remove_outside=False)
     filename = save_path / f'{pkl_prefix}_infos_train.pkl'
     print(f'Kitti info train file is saved to {filename}')
     mmcv.dump(kitti_infos_train, filename)
+    # kitti_infos_val = get_kitti_image_info(
+    #     data_path,
+    #     training=True,
+    #     velodyne=True,
+    #     calib=True,
+    #     image_ids=val_img_ids,
+    #     relative_path=relative_path)
     kitti_infos_val = get_kitti_image_info(
         data_path,
         training=True,
         velodyne=True,
-        calib=True,
+        image=False,
+        calib=False,
         image_ids=val_img_ids,
-        relative_path=relative_path)
-    _calculate_num_points_in_gt(data_path, kitti_infos_val, relative_path)
+        relative_path=relative_path,
+        with_imageshape=False)
+    _calculate_num_points_in_gt(data_path, kitti_infos_val, relative_path, remove_outside=False)
     filename = save_path / f'{pkl_prefix}_infos_val.pkl'
     print(f'Kitti info val file is saved to {filename}')
     mmcv.dump(kitti_infos_val, filename)
@@ -134,17 +154,17 @@ def create_kitti_info_file(data_path,
     print(f'Kitti info trainval file is saved to {filename}')
     mmcv.dump(kitti_infos_train + kitti_infos_val, filename)
 
-    kitti_infos_test = get_kitti_image_info(
-        data_path,
-        training=False,
-        label_info=False,
-        velodyne=True,
-        calib=True,
-        image_ids=test_img_ids,
-        relative_path=relative_path)
-    filename = save_path / f'{pkl_prefix}_infos_test.pkl'
-    print(f'Kitti info test file is saved to {filename}')
-    mmcv.dump(kitti_infos_test, filename)
+    # kitti_infos_test = get_kitti_image_info(
+    #     data_path,
+    #     training=False,
+    #     label_info=False,
+    #     velodyne=True,
+    #     calib=True,
+    #     image_ids=test_img_ids,
+    #     relative_path=relative_path)
+    # filename = save_path / f'{pkl_prefix}_infos_test.pkl'
+    # print(f'Kitti info test file is saved to {filename}')
+    # mmcv.dump(kitti_infos_test, filename)
 
 
 def create_waymo_info_file(data_path,
@@ -232,7 +252,8 @@ def _create_reduced_point_cloud(data_path,
                                 save_path=None,
                                 back=False,
                                 num_features=4,
-                                front_camera_id=2):
+                                front_camera_id=2,
+                                with_calib=True):
     """Create reduced point clouds for given info.
 
     Args:
@@ -249,27 +270,32 @@ def _create_reduced_point_cloud(data_path,
     for info in mmcv.track_iter_progress(kitti_infos):
         pc_info = info['point_cloud']
         image_info = info['image']
-        calib = info['calib']
 
         v_path = pc_info['velodyne_path']
         v_path = Path(data_path) / v_path
         points_v = np.fromfile(
             str(v_path), dtype=np.float32,
             count=-1).reshape([-1, num_features])
-        rect = calib['R0_rect']
-        if front_camera_id == 2:
-            P2 = calib['P2']
-        else:
-            P2 = calib[f'P{str(front_camera_id)}']
-        Trv2c = calib['Tr_velo_to_cam']
+        
+        if with_calib:
+            calib = info['calib']
+            rect = calib['R0_rect']
+            if front_camera_id == 2:
+                P2 = calib['P2']
+            else:
+                P2 = calib[f'P{str(front_camera_id)}']
+            Trv2c = calib['Tr_velo_to_cam']
         # first remove z < 0 points
         # keep = points_v[:, -1] > 0
         # points_v = points_v[keep]
         # then remove outside.
         if back:
             points_v[:, 0] = -points_v[:, 0]
-        points_v = box_np_ops.remove_outside_points(points_v, rect, Trv2c, P2,
-                                                    image_info['image_shape'])
+        
+        if with_calib:
+            points_v = box_np_ops.remove_outside_points(points_v, rect, Trv2c, P2,
+                                                        image_info['image_shape'])
+
         if save_path is None:
             save_dir = v_path.parent.parent / (v_path.parent.stem + '_reduced')
             if not save_dir.exists():
@@ -292,7 +318,8 @@ def create_reduced_point_cloud(data_path,
                                val_info_path=None,
                                test_info_path=None,
                                save_path=None,
-                               with_back=False):
+                               with_back=False,
+                               with_calib=True):
     """Create reduced point clouds for training/validation/testing.
 
     Args:
@@ -315,18 +342,18 @@ def create_reduced_point_cloud(data_path,
         test_info_path = Path(data_path) / f'{pkl_prefix}_infos_test.pkl'
 
     print('create reduced point cloud for training set')
-    _create_reduced_point_cloud(data_path, train_info_path, save_path)
+    _create_reduced_point_cloud(data_path, train_info_path, save_path, with_calib=with_calib)
     print('create reduced point cloud for validation set')
-    _create_reduced_point_cloud(data_path, val_info_path, save_path)
-    print('create reduced point cloud for testing set')
-    _create_reduced_point_cloud(data_path, test_info_path, save_path)
+    _create_reduced_point_cloud(data_path, val_info_path, save_path, with_calib=with_calib)
+    # print('create reduced point cloud for testing set')
+    # _create_reduced_point_cloud(data_path, test_info_path, save_path, with_calib=with_calib)
     if with_back:
         _create_reduced_point_cloud(
-            data_path, train_info_path, save_path, back=True)
+            data_path, train_info_path, save_path, back=True, with_calib=with_calib)
         _create_reduced_point_cloud(
-            data_path, val_info_path, save_path, back=True)
-        _create_reduced_point_cloud(
-            data_path, test_info_path, save_path, back=True)
+            data_path, val_info_path, save_path, back=True, with_calib=with_calib)
+        # _create_reduced_point_cloud(
+        #     data_path, test_info_path, save_path, back=True, with_calib=with_calib)
 
 
 def export_2d_annotation(root_path, info_path, mono3d=True):

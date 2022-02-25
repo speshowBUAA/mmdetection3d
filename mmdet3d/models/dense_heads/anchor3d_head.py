@@ -469,7 +469,8 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
                 scores = cls_score.softmax(-1)
             bbox_pred = bbox_pred.permute(1, 2,
                                           0).reshape(-1, self.box_code_size)
-
+            np_anchors = anchors.detach().cpu().numpy()
+            np.save('./np_anchors.npy', np_anchors)
             nms_pre = cfg.get('nms_pre', -1)
             if nms_pre > 0 and scores.shape[0] > nms_pre:
                 if self.use_sigmoid_cls:

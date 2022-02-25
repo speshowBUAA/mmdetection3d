@@ -20,7 +20,7 @@ from mmdet3d.models import build_model
 from mmdet3d.utils import collect_env, get_root_logger
 from mmdet.apis import set_random_seed
 from mmseg import __version__ as mmseg_version
-
+from demo.prune_model import get_prune_model
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
@@ -193,7 +193,13 @@ def main():
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
     model.init_weights()
-
+    prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(cfg)
+    model.pts_voxel_encoder = prune_pts_vfe
+    model.pts_middle_encoder = pts_middle_encoder
+    model.pts_backbone = prune_pts_backbone
+    model.pts_neck = pts_neck
+    model.train()
+    
     logger.info(f'Model:\n{model}')
     datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:

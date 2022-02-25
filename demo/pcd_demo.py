@@ -3,7 +3,6 @@ from argparse import ArgumentParser
 
 from mmdet3d.apis import inference_detector, init_model, show_result_meshlab
 
-
 def main():
     parser = ArgumentParser()
     parser.add_argument('pcd', help='Point cloud file')
@@ -26,9 +25,18 @@ def main():
     args = parser.parse_args()
 
     # build the model from a config file and a checkpoint file
-    model = init_model(args.config, args.checkpoint, device=args.device)
+    model = init_model(args.config, args.checkpoint, device=args.device, prune_model=False)
+    
     # test a single image
     result, data = inference_detector(model, args.pcd)
+    # boxes_3d = result[0]['pts_bbox']['boxes_3d'].tensor.numpy()
+    # labels_3d = result[0]['pts_bbox']['labels_3d'].numpy() + 1
+    # scores_3d = result[0]['pts_bbox']['scores_3d'].numpy()
+    # for i in range(len(labels_3d)):
+    #     if labels_3d[i] == 1:
+    #         if scores_3d[i] > 0.5:
+    #             print(boxes_3d[i,6])
+
     # show the results
     show_result_meshlab(
         data,

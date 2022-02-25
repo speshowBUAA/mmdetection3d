@@ -440,7 +440,7 @@ class HardVFE(nn.Module):
         voxel_count = voxel_feats.shape[1]
         mask = get_paddings_indicator(num_points, voxel_count, axis=0)
         voxel_feats *= mask.unsqueeze(-1).type_as(voxel_feats)
-
+        raw_feats = voxel_feats
         for i, vfe in enumerate(self.vfe_layers):
             voxel_feats = vfe(voxel_feats)
 
@@ -448,7 +448,7 @@ class HardVFE(nn.Module):
             voxel_feats = self.fusion_with_mask(features, mask, voxel_feats,
                                                 coors, img_feats, img_metas)
 
-        return voxel_feats
+        return voxel_feats, raw_feats
 
     def fusion_with_mask(self, features, mask, voxel_feats, coors, img_feats,
                          img_metas):

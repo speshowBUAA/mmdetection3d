@@ -15,7 +15,7 @@ from mmdet3d.datasets import build_dataloader, build_dataset
 from mmdet3d.models import build_model
 from mmdet.apis import multi_gpu_test, set_random_seed
 from mmdet.datasets import replace_ImageToTensor
-
+from demo.prune_model import get_prune_model
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -184,6 +184,17 @@ def main():
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_model(cfg.model, test_cfg=cfg.get('test_cfg'))
+
+    # ##################
+    # prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(cfg)
+    # prune_pts_vfe.test = True
+    # model.pts_voxel_encoder = prune_pts_vfe
+    # model.pts_middle_encoder = pts_middle_encoder
+    # model.pts_backbone = prune_pts_backbone
+    # model.pts_neck = pts_neck
+    # model.eval()
+    # ##################
+
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:
         wrap_fp16_model(model)

@@ -141,6 +141,7 @@ def _extend_matrix(mat):
 def get_kitti_image_info(path,
                          training=True,
                          label_info=True,
+                         image=True,
                          velodyne=False,
                          calib=False,
                          image_ids=7481,
@@ -190,8 +191,9 @@ def get_kitti_image_info(path,
         if velodyne:
             pc_info['velodyne_path'] = get_velodyne_path(
                 idx, path, training, relative_path)
-        image_info['image_path'] = get_image_path(idx, path, training,
-                                                  relative_path)
+        if image:
+            image_info['image_path'] = get_image_path(idx, path, training,
+                                                    relative_path)
         if with_imageshape:
             img_path = image_info['image_path']
             if relative_path:

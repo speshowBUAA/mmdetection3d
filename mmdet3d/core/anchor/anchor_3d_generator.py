@@ -272,17 +272,17 @@ class AlignedAnchor3DRangeGenerator(Anchor3DRangeGenerator):
         anchor_range = torch.tensor(anchor_range, device=device)
         z_centers = torch.linspace(
             anchor_range[2],
-            anchor_range[5],
+            anchor_range[5] + 1e-5,
             feature_size[0] + 1,
             device=device)
         y_centers = torch.linspace(
             anchor_range[1],
-            anchor_range[4],
+            anchor_range[4] + 1e-5,
             feature_size[1] + 1,
             device=device)
         x_centers = torch.linspace(
             anchor_range[0],
-            anchor_range[3],
+            anchor_range[3] + 1e-5,
             feature_size[2] + 1,
             device=device)
         sizes = torch.tensor(sizes, device=device).reshape(-1, 3) * scale
