@@ -40,3 +40,5 @@ model = dict(
             custom_values=[0, 0],
             rotations=[0, 1.57],
             reshape_out=True)))
+
+load_from = 'checkpoints/hv_pointpillars_secfpn_sbn-all_4x8_2x_nus-3d_20200620_230725-0817d270.pth'

@@ -324,6 +324,7 @@ class ObjectSample(object):
 
             gt_labels_3d = np.concatenate([gt_labels_3d, sampled_gt_labels],
                                           axis=0)
+            sampled_gt_bboxes_3d = np.concatenate([sampled_gt_bboxes_3d, np.zeros([sampled_gt_bboxes_3d.shape[0], 2])], axis=-1) # custom 
             gt_bboxes_3d = gt_bboxes_3d.new_box(
                 np.concatenate(
                     [gt_bboxes_3d.tensor.numpy(), sampled_gt_bboxes_3d]))

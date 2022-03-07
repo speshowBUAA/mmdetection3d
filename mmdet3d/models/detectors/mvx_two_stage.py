@@ -308,12 +308,40 @@ class MVXTwoStageDetector(Base3DDetector):
                 boxes to be ignored. Defaults to None.
 
         Returns:
+
             dict: Losses of each branch.
         """
         outs = self.pts_bbox_head(pts_feats)
         loss_inputs = outs + (gt_bboxes_3d, gt_labels_3d, img_metas)
         losses = self.pts_bbox_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
+
+        ##########deubg##############
+        # bbox_list = self.pts_bbox_head.get_bboxes(
+        #     *outs, img_metas, rescale=False)
+        # bbox_results = [
+        #     bbox3d2result(bboxes, scores, labels)
+        #     for bboxes, scores, labels in bbox_list
+        # ]
+        # print(img_metas[2])
+        # boxes = bbox_results[2]['boxes_3d'].tensor.numpy()
+        # scores = bbox_results[2]['scores_3d'].numpy()
+        # labels = bbox_results[2]['labels_3d'].numpy()
+        # import numpy as np
+        # filter_box = []
+        # for i in range(scores.shape[0]):
+        #     if scores[i] > 0.3:
+        #         filter_box.append(boxes[i,:])
+        # filter_box = np.array(filter_box)
+        # np.savetxt('./boxes.txt', filter_box[:,:7], fmt="%f", delimiter=" ")
+        # # np.savetxt('./scores.txt', scores, fmt="%f", delimiter=" ")
+        # print('-----------------')
+        # print(gt_bboxes_3d[2])
+        # gt_boxes = gt_bboxes_3d[2].tensor.numpy()
+        # np.savetxt('./gt_boxes.txt', gt_boxes[:,:7], fmt="%f", delimiter=" ")
+        # print(gt_labels_3d[2])
+        # exit()
+
         return losses
 
     def forward_img_train(self,

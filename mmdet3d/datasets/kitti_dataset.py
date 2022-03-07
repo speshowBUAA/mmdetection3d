@@ -51,6 +51,8 @@ class KittiDataset(Custom3DDataset):
             invalid predicted boxes. Default: [0, -40, -3, 70.4, 40, 0.0].
     """
     CLASSES = ('car', 'pedestrian', 'cyclist')
+    NUSCENES_CLASSES = ('Car', 'Truck', 'Trailer', 'Bus', 'Construction_vehicle', 'Bicycle',
+    'Cyclist', 'Pedestrian', 'Traffic_cone', 'Barrier')
 
     def __init__(self,
                  data_root,
@@ -63,7 +65,8 @@ class KittiDataset(Custom3DDataset):
                  box_type_3d='LiDAR',
                  filter_empty_gt=True,
                  test_mode=False,
-                 pcd_limit_range=[0, -40, -3, 70.4, 40, 0.0]):
+                #  pcd_limit_range=[0, -40, -3, 70.4, 40, 0.0]
+                 pcd_limit_range=[-50, -50, -5, 50, 50, 3]):
         super().__init__(
             data_root=data_root,
             ann_file=ann_file,
@@ -163,14 +166,25 @@ class KittiDataset(Custom3DDataset):
         loc = annos['location']
         dims = annos['dimensions']
         rots = annos['rotation_y']
+
+        rots = -rots - np.pi / 2
         gt_names = annos['name']
-        gt_bboxes_3d = np.concatenate([loc, dims, rots[..., np.newaxis]],
-                                      axis=1).astype(np.float32)
+        # gt_bboxes_3d = np.concatenate([loc, dims, rots[..., np.newaxis]],
+        #                               axis=1).astype(np.float32)
 
         # convert gt_bboxes_3d to velodyne coordinates
         # gt_bboxes_3d = CameraInstance3DBoxes(gt_bboxes_3d).convert_to(
         #     self.box_mode_3d, np.linalg.inv(rect @ Trv2c))
-        gt_bboxes_3d = gt_bboxes_3d
+        # gt_bboxes_3d = CameraInstance3DBoxes(gt_bboxes_3d)
+
+        gt_bboxes_3d = np.concatenate([loc, dims, rots[..., np.newaxis], np.zeros([rots.shape[0], 2])],
+                                      axis=1).astype(np.float32)
+        gt_bboxes_3d[:, [3,4]] = gt_bboxes_3d[:, [4,3]]
+        gt_bboxes_3d = LiDARInstance3DBoxes(
+            gt_bboxes_3d,
+            box_dim=gt_bboxes_3d.shape[-1],
+            origin=(0.5, 0.5, 0.5)).convert_to(self.box_mode_3d)
+
         gt_bboxes = annos['bbox']
 
         selected = self.drop_arrays_by_name(gt_names, ['DontCare'])
@@ -180,7 +194,8 @@ class KittiDataset(Custom3DDataset):
         gt_labels = []
         for cat in gt_names:
             if cat in self.CLASSES:
-                gt_labels.append(self.CLASSES.index(cat))
+                # gt_labels.append(self.CLASSES.index(cat))
+                gt_labels.append(self.NUSCENES_CLASSES.index(cat))
             else:
                 gt_labels.append(-1)
         gt_labels = np.array(gt_labels).astype(np.int64)
@@ -267,7 +282,6 @@ class KittiDataset(Custom3DDataset):
             pklfile_prefix = osp.join(tmp_dir.name, 'results')
         else:
             tmp_dir = None
-
         if not isinstance(outputs[0], dict):
             result_files = self.bbox2result_kitti2d(outputs, self.CLASSES,
                                                     pklfile_prefix,
@@ -334,7 +348,7 @@ class KittiDataset(Custom3DDataset):
         if isinstance(result_files, dict):
             ap_dict = dict()
             for name, result_files_ in result_files.items():
-                eval_types = ['bbox', 'bev', '3d']
+                eval_types = ['3d']
                 if 'img' in name:
                     eval_types = ['bbox']
                 ap_result_str, ap_dict_ = kitti_eval(
@@ -386,14 +400,21 @@ class KittiDataset(Custom3DDataset):
         if submission_prefix is not None:
             mmcv.mkdir_or_exist(submission_prefix)
 
+        nuscense_class_names    = [
+            'Car', 'Truck', 'Trailer', 'Bus', 'Construction_vehicle', 'Cyclist',
+            'Cyclist', 'Pedestrian', 'Traffic_cone', 'Barrier'
+        ]
+
         det_annos = []
         print('\nConverting prediction to KITTI format')
         for idx, pred_dicts in enumerate(
                 mmcv.track_iter_progress(net_outputs)):
+
             annos = []
             info = self.data_infos[idx]
             sample_idx = info['image']['image_idx']
-            image_shape = info['image']['image_shape'][:2]
+
+            # image_shape = info['image']['image_shape'][:2]
             box_dict = self.convert_valid_bboxes(pred_dicts, info)
             anno = {
                 'name': [],
@@ -406,30 +427,66 @@ class KittiDataset(Custom3DDataset):
                 'rotation_y': [],
                 'score': []
             }
-            if len(box_dict['bbox']) > 0:
-                box_2d_preds = box_dict['bbox']
-                box_preds = box_dict['box3d_camera']
+
+            if len(box_dict['box3d_lidar']) > 0:
                 scores = box_dict['scores']
                 box_preds_lidar = box_dict['box3d_lidar']
                 label_preds = box_dict['label_preds']
 
-                for box, box_lidar, bbox, score, label in zip(
-                        box_preds, box_preds_lidar, box_2d_preds, scores,
+                for box_lidar, score, label in zip(
+                        box_preds_lidar, scores,
                         label_preds):
-                    bbox[2:] = np.minimum(bbox[2:], image_shape[::-1])
-                    bbox[:2] = np.maximum(bbox[:2], [0, 0])
-                    anno['name'].append(class_names[int(label)])
+
+                    if nuscense_class_names[int(label)] not in class_names:
+                        continue
+                    anno['name'].append(nuscense_class_names[int(label)])
                     anno['truncated'].append(0.0)
                     anno['occluded'].append(0)
-                    anno['alpha'].append(
-                        -np.arctan2(-box_lidar[1], box_lidar[0]) + box[6])
-                    anno['bbox'].append(bbox)
-                    anno['dimensions'].append(box[3:6])
-                    anno['location'].append(box[:3])
-                    anno['rotation_y'].append(box[6])
+                    # anno['alpha'].append(
+                    #     -np.arctan2(-box_lidar[1], box_lidar[0]) + box_lidar[6])
+
+                    # if nuscense_class_names[int(label)] == 'Car':
+                    #     b_x0 = (box_lidar[0] + 50 - box_lidar[3]/2) * 10
+                    #     b_y0 = (box_lidar[1] + 50 - box_lidar[4]/2) * 10
+                    #     b_x1 = (box_lidar[0] + 50 + box_lidar[3]/2) * 10
+                    #     b_y1 = (box_lidar[1] + 50 + box_lidar[4]/2) * 10
+                    # elif nuscense_class_names[int(label)] == 'Cyclist':
+                    #     b_x0 = (box_lidar[0] + 50 - box_lidar[3]/2 * 4) * 10
+                    #     b_y0 = (box_lidar[1] + 50 - box_lidar[4]/2 * 4) * 10
+                    #     b_x1 = (box_lidar[0] + 50 + box_lidar[3]/2 * 4) * 10
+                    #     b_y1 = (box_lidar[1] + 50 + box_lidar[4]/2 * 4) * 10
+                    # elif nuscense_class_names[int(label)] == 'Pedestrian':
+                    #     b_x0 = (box_lidar[0] + 50 - box_lidar[3]/2 * 8) * 10
+                    #     b_y0 = (box_lidar[1] + 50 - box_lidar[4]/2 * 8) * 10
+                    #     b_x1 = (box_lidar[0] + 50 + box_lidar[3]/2 * 8) * 10
+                    #     b_y1 = (box_lidar[1] + 50 + box_lidar[4]/2 * 8) * 10
+
+                    anno['alpha'].append(0)
+                    # anno['bbox'].append(np.array([b_x0, b_y0, b_x1, b_y1]))
+                    anno['bbox'].append(np.zeros([4]))
+                    # anno['bbox'].append(np.array([box_lidar[0], box_lidar[1], box_lidar[0], box_lidar[1]]))
+                    # anno['dimensions'].append(box_lidar[3:6])
+                    anno['dimensions'].append([box_lidar[4],box_lidar[3],box_lidar[5]])
+                    box_lidar[2] = box_lidar[2] + box_lidar[5] / 2
+                    anno['location'].append(box_lidar[:3])
+                    # anno['rotation_y'].append(box_lidar[6])
+                    anno['rotation_y'].append(box_lidar[6] - np.pi/2)
                     anno['score'].append(score)
 
-                anno = {k: np.stack(v) for k, v in anno.items()}
+                if len(anno['name']) > 0:
+                    anno = {k: np.stack(v) for k, v in anno.items()}
+                else:
+                    anno = {
+                        'name': np.array([]),
+                        'truncated': np.array([]),
+                        'occluded': np.array([]),
+                        'alpha': np.array([]),
+                        'bbox': np.zeros([0, 4]),
+                        'dimensions': np.zeros([0, 3]),
+                        'location': np.zeros([0, 3]),
+                        'rotation_y': np.array([]),
+                        'score': np.array([]),
+                    }
                 annos.append(anno)
             else:
                 anno = {
@@ -475,7 +532,6 @@ class KittiDataset(Custom3DDataset):
                 out = f'{pklfile_prefix}.pkl'
             mmcv.dump(det_annos, out)
             print(f'Result is saved to {out}.')
-
         return det_annos
 
     def bbox2result_kitti2d(self,
@@ -631,36 +687,37 @@ class KittiDataset(Custom3DDataset):
                 label_preds=np.zeros([0, 4]),
                 sample_idx=sample_idx)
 
-        rect = info['calib']['R0_rect'].astype(np.float32)
-        Trv2c = info['calib']['Tr_velo_to_cam'].astype(np.float32)
-        P2 = info['calib']['P2'].astype(np.float32)
-        img_shape = info['image']['image_shape']
-        P2 = box_preds.tensor.new_tensor(P2)
+        # rect = info['calib']['R0_rect'].astype(np.float32)
+        # Trv2c = info['calib']['Tr_velo_to_cam'].astype(np.float32)
+        # P2 = info['calib']['P2'].astype(np.float32)
+        # img_shape = info['image']['image_shape']
+        # P2 = box_preds.tensor.new_tensor(P2)
 
-        box_preds_camera = box_preds.convert_to(Box3DMode.CAM, rect @ Trv2c)
-
-        box_corners = box_preds_camera.corners
-        box_corners_in_image = points_cam2img(box_corners, P2)
+        # box_preds_camera = box_preds.convert_to(Box3DMode.CAM, rect @ Trv2c)
+        box_preds_camera = np.zeros([0, 7])
+        box_2d_preds = np.zeros([0, 4])
+        # box_corners = box_preds_camera.corners
+        # box_corners_in_image = points_cam2img(box_corners, P2)
         # box_corners_in_image: [N, 8, 2]
-        minxy = torch.min(box_corners_in_image, dim=1)[0]
-        maxxy = torch.max(box_corners_in_image, dim=1)[0]
-        box_2d_preds = torch.cat([minxy, maxxy], dim=1)
+        # minxy = torch.min(box_corners_in_image, dim=1)[0]
+        # maxxy = torch.max(box_corners_in_image, dim=1)[0]
+        # box_2d_preds = torch.cat([minxy, maxxy], dim=1)
         # Post-processing
         # check box_preds_camera
-        image_shape = box_preds.tensor.new_tensor(img_shape)
-        valid_cam_inds = ((box_2d_preds[:, 0] < image_shape[1]) &
-                          (box_2d_preds[:, 1] < image_shape[0]) &
-                          (box_2d_preds[:, 2] > 0) & (box_2d_preds[:, 3] > 0))
+        # image_shape = box_preds.tensor.new_tensor(img_shape)
+        # valid_cam_inds = ((box_2d_preds[:, 0] < image_shape[1]) &
+        #                   (box_2d_preds[:, 1] < image_shape[0]) &
+        #                   (box_2d_preds[:, 2] > 0) & (box_2d_preds[:, 3] > 0))
         # check box_preds
         limit_range = box_preds.tensor.new_tensor(self.pcd_limit_range)
         valid_pcd_inds = ((box_preds.center > limit_range[:3]) &
                           (box_preds.center < limit_range[3:]))
-        valid_inds = valid_cam_inds & valid_pcd_inds.all(-1)
-
+        # valid_inds = valid_cam_inds & valid_pcd_inds.all(-1)
+        valid_inds = valid_pcd_inds.all(-1)
         if valid_inds.sum() > 0:
             return dict(
-                bbox=box_2d_preds[valid_inds, :].numpy(),
-                box3d_camera=box_preds_camera[valid_inds].tensor.numpy(),
+                bbox=box_2d_preds,
+                box3d_camera=box_preds_camera,
                 box3d_lidar=box_preds[valid_inds].tensor.numpy(),
                 scores=scores[valid_inds].numpy(),
                 label_preds=labels[valid_inds].numpy(),

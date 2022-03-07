@@ -70,10 +70,11 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
             valid_class = 1
         else:
             valid_class = -1
-        height = abs(dt_anno['bbox'][i, 3] - dt_anno['bbox'][i, 1])
-        if height < MIN_HEIGHT[difficulty]:
-            ignored_dt.append(1)
-        elif valid_class == 1:
+
+        # height = abs(dt_anno['bbox'][i, 3] - dt_anno['bbox'][i, 1])
+        # if height < MIN_HEIGHT[difficulty]:
+        #     ignored_dt.append(1)
+        if valid_class == 1:
             ignored_dt.append(0)
         else:
             ignored_dt.append(-1)
@@ -488,6 +489,7 @@ def eval_class(gt_annos,
     recall = np.zeros(
         [num_class, num_difficulty, num_minoverlap, N_SAMPLE_PTS])
     aos = np.zeros([num_class, num_difficulty, num_minoverlap, N_SAMPLE_PTS])
+
     for m, current_class in enumerate(current_classes):
         for idx_l, difficulty in enumerate(difficultys):
             rets = _prepare_data(gt_annos, dt_annos, current_class, difficulty)
@@ -699,10 +701,12 @@ def kitti_eval(gt_annos,
         if anno['alpha'][0] != -10:
             valid_alpha_gt = True
             break
+    pred_alpha = False
     compute_aos = (pred_alpha and valid_alpha_gt)
     if compute_aos:
         eval_types.append('aos')
 
+    
     mAPbbox, mAPbev, mAP3d, mAPaos = do_eval(gt_annos, dt_annos,
                                              current_classes, min_overlaps,
                                              eval_types)

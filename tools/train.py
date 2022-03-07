@@ -10,6 +10,7 @@ import torch
 import warnings
 from mmcv import Config, DictAction
 from mmcv.runner import get_dist_info, init_dist
+from mmcv.runner import load_checkpoint
 from os import path as osp
 
 from mmdet import __version__ as mmdet_version
@@ -193,6 +194,8 @@ def main():
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
     model.init_weights()
+
+    # prune model
     prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(cfg)
     model.pts_voxel_encoder = prune_pts_vfe
     model.pts_middle_encoder = pts_middle_encoder

@@ -253,6 +253,7 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
             if self.diff_rad_by_sin:
                 pos_bbox_pred, pos_bbox_targets = self.add_sin_difference(
                     pos_bbox_pred, pos_bbox_targets)
+                    
             loss_bbox = self.loss_bbox(
                 pos_bbox_pred,
                 pos_bbox_targets,
@@ -353,7 +354,6 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
          num_total_neg) = cls_reg_targets
         num_total_samples = (
             num_total_pos + num_total_neg if self.sampling else num_total_pos)
-
         # num_total_samples = None
         losses_cls, losses_bbox, losses_dir = multi_apply(
             self.loss_single,

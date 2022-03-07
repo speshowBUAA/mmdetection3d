@@ -414,6 +414,7 @@ class LoadPointsFromFile(object):
         points = self._load_points(pts_filename)
         points = points.reshape(-1, self.load_dim)
         points = points[:, self.use_dim]
+        points[:, 3] = 0 # custom
         attribute_dims = None
 
         if self.shift_height:

@@ -289,7 +289,6 @@ class NuScenesDataset(Custom3DDataset):
             gt_bboxes_3d,
             box_dim=gt_bboxes_3d.shape[-1],
             origin=(0.5, 0.5, 0.5)).convert_to(self.box_mode_3d)
-
         anns_results = dict(
             gt_bboxes_3d=gt_bboxes_3d,
             gt_labels_3d=gt_labels_3d,
@@ -393,6 +392,7 @@ class NuScenesDataset(Custom3DDataset):
             'v1.0-mini': 'mini_val',
             'v1.0-trainval': 'val',
         }
+        
         nusc_eval = NuScenesEval(
             nusc,
             config=self.eval_detection_configs,

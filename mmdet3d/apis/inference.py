@@ -113,6 +113,7 @@ def inference_detector(model, pcd):
         mask_fields=[],
         seg_fields=[])
     data = test_pipeline(data)
+
     data = collate([data], samples_per_gpu=1)
     if next(model.parameters()).is_cuda:
         # scatter to specified GPU
@@ -121,6 +122,7 @@ def inference_detector(model, pcd):
         # this is a workaround to avoid the bug of MMDataParallel
         data['img_metas'] = data['img_metas'][0].data
         data['points'] = data['points'][0].data
+
     # forward the model
     with torch.no_grad():
         result = model(return_loss=False, rescale=True, **data)

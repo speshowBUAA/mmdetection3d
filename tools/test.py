@@ -185,15 +185,15 @@ def main():
     cfg.model.train_cfg = None
     model = build_model(cfg.model, test_cfg=cfg.get('test_cfg'))
 
-    # ##################
-    # prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(cfg)
-    # prune_pts_vfe.test = True
-    # model.pts_voxel_encoder = prune_pts_vfe
-    # model.pts_middle_encoder = pts_middle_encoder
-    # model.pts_backbone = prune_pts_backbone
-    # model.pts_neck = pts_neck
-    # model.eval()
-    # ##################
+    ##################
+    prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(cfg)
+    prune_pts_vfe.test = True
+    model.pts_voxel_encoder = prune_pts_vfe
+    model.pts_middle_encoder = pts_middle_encoder
+    model.pts_backbone = prune_pts_backbone
+    model.pts_neck = pts_neck
+    model.eval()
+    ##################
 
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:
@@ -213,6 +213,16 @@ def main():
     elif hasattr(dataset, 'PALETTE'):
         # segmentation dataset has `PALETTE` attribute
         model.PALETTE = dataset.PALETTE
+
+    # ##################
+    # prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(cfg)
+    # prune_pts_vfe.test = True
+    # model.pts_voxel_encoder = prune_pts_vfe
+    # model.pts_middle_encoder = pts_middle_encoder
+    # model.pts_backbone = prune_pts_backbone
+    # model.pts_neck = pts_neck
+    # model.eval()
+    # ##################
 
     if not distributed:
         model = MMDataParallel(model, device_ids=cfg.gpu_ids)
