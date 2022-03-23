@@ -664,10 +664,11 @@ def preprocess(model, pcd):
 # get api
 def get_prune_model(cfg):
     device = "cuda:0"
-    checkpoint = "checkpoints/hv_pointpillars_secfpn_sbn-all_4x8_2x_nus-3d_20200620_230725-0817d270.pth"
+    # checkpoint = "checkpoints/hv_pointpillars_secfpn_sbn-all_4x8_2x_nus-3d_20200620_230725-0817d270.pth"
     # pcd = "/data/testdata/QT_js_for_nuscenes_10Hz/1606813512902872600.bin"
-    # checkpoint = "work_dirs/hv_pointpillars_secfpn_sbn-all_4x8_2x_custom-3d_0302/epoch_24.pth"
-    pcd = "data/2022-02-18/testing/velodyne/1645148902202493613.bin"
+    checkpoint = "work_dirs_0218/hv_pointpillars_secfpn_sbn-all_4x8_2x_custom-3d_0302/epoch_24.pth"
+    # pcd = "data/2022-02-18/testing/velodyne/1645148902202493613.bin"
+    pcd = "demo/1645179542771259609.bin"
     model, prune_pts_vfe, cfg_mask = build_and_prune_vfe_model(cfg, checkpoint, device=device)
 
     data = preprocess(model, pcd)
@@ -676,7 +677,8 @@ def get_prune_model(cfg):
     _, raw_feats = model.pts_voxel_encoder(voxels, num_points, coors)
     v_features = prune_pts_vfe(raw_feats)
     batch_size = coors[-1, 0] + 1
-    pts_middle_encoder = PointPillarsScatter(v_features.shape[1], output_shape=[400, 400])
+    # pts_middle_encoder = PointPillarsScatter(v_features.shape[1], output_shape=[400, 400])
+    pts_middle_encoder = PointPillarsScatter(v_features.shape[1], output_shape=[200, 200])
     feature_map = pts_middle_encoder(v_features, coors, batch_size)
     pts_backbone = build_backbone_model(model, v_features.shape[1], cfg_mask[-1], device=device)
     prune_pts_backbone, backbone_cfg_mask = prune_backbone_model(pts_backbone, v_features.shape[1], ratio=0.1, device=device)
@@ -684,7 +686,7 @@ def get_prune_model(cfg):
     pts_neck = build_neck_model(model, [b_features[0].shape[1], b_features[1].shape[1], b_features[2].shape[1]], backbone_cfg_mask, device=device)
     return prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck
 
-def main():
+def main(): 
     parser = ArgumentParser()
     parser.add_argument('pcd', help='Point cloud file')
     parser.add_argument('config', help='Config file')

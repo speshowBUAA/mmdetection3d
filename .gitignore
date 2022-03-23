@@ -115,6 +115,11 @@ data
 *.pkl.json
 *.log.json
 work_dirs/
+work_dirs_0318/
+work_dirs_0218/
+work_dir_rotscaletrans/
+work_dir_objectsample/
+work_dir_objectsample+rotscaletrans/
 exps/
 *~
 mmdet3d/.mim
@@ -137,3 +142,4 @@ mmdet3d/core/evaluation/waymo_utils/compute_detection_metrics_main
 # debug
 *.npy
 *.sh
+log/

@@ -1,19 +1,34 @@
 # dataset settings
 dataset_type = 'KittiDataset'
 # dataset_type = 'NuScenesDataset'
-data_root = 'data/2022-02-18/'
-class_names = ['Pedestrian', 'Cyclist', 'Car']
+# data_root = 'data/2022-02-18/'
+# data_root = 'data/2022-02-22_24-jt/'
+# data_root = 'data/2022-02-18+nusc-mini/'
+# data_root = 'data/2022-02-18-500/'
+data_root = 'data/2022-03-18-pedestrian/'
+# class_names = ['Pedestrian', 'Cyclist', 'Car']
+class_names = ['Pedestrian']
 point_cloud_range = [-50, -50, -5, 50, 50, 3]
 input_modality = dict(use_lidar=True, use_camera=False)
+# db_sampler = dict(
+#     data_root=data_root,
+#     info_path=data_root + '2022-03-18-pedestrian_dbinfos_train.pkl',
+#     rate=1.0, 
+#     prepare=dict(
+#         filter_by_difficulty=[-1],
+#         filter_by_min_points=dict(Car=5, Pedestrian=10, Cyclist=10)),
+#     classes=class_names,
+#     sample_groups=dict(Car=12, Pedestrian=6, Cyclist=6))
+
 db_sampler = dict(
     data_root=data_root,
-    info_path=data_root + '2022-02-18_dbinfos_train.pkl',
+    info_path=data_root + '2022-03-18-pedestrian_dbinfos_train.pkl',
     rate=1.0,
     prepare=dict(
         filter_by_difficulty=[-1],
-        filter_by_min_points=dict(Car=5, Pedestrian=10, Cyclist=10)),
+        filter_by_min_points=dict(Pedestrian=10)),
     classes=class_names,
-    sample_groups=dict(Car=12, Pedestrian=6, Cyclist=6))
+    sample_groups=dict(Pedestrian=6))
 
 file_client_args = dict(backend='disk')
 # Uncomment the following if use ceph or other file clients.
@@ -34,21 +49,19 @@ train_pipeline = [
         with_bbox_3d=True,
         with_label_3d=True,
         file_client_args=file_client_args),
-    # dict(type='ObjectSample', db_sampler=db_sampler),
+    dict(type='ObjectSample', db_sampler=db_sampler),
     # dict(
     #     type='ObjectNoise',
     #     num_try=100,
     #     translation_std=[1.0, 1.0, 0.5],
     #     global_rot_range=[0.0, 0.0],
-    #     rot_range=[-0.3925, 0.3925]),
-    #     # rot_range=[-0.78539816, 0.78539816]),
+    #     rot_range=[-0.78539816, 0.78539816]),
     dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-    # dict(
-    #     type='GlobalRotScaleTrans',
-    #     rot_range=[-0.3925, 0.3925],
-    #     # rot_range=[-0.78539816, 0.78539816],
-    #     scale_ratio_range=[0.95, 1.05],
-    #     translation_std=[0, 0, 0]),
+    dict(
+        type='GlobalRotScaleTrans',
+        rot_range=[-0.78539816, 0.78539816],
+        scale_ratio_range=[0.95, 1.05],
+        translation_std=[0, 0, 0]),
     dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='PointShuffle'),
@@ -110,7 +123,7 @@ data = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_root,
-            ann_file=data_root + '2022-02-18_infos_train.pkl',
+            ann_file=data_root + '2022-03-18-pedestrian_infos_train.pkl',
             split='training',
             pts_prefix='velodyne_reduced',
             pipeline=train_pipeline,
@@ -123,7 +136,7 @@ data = dict(
     val=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file=data_root + '2022-02-18_infos_val.pkl',
+        ann_file=data_root + '2022-03-18-pedestrian_infos_val.pkl',
         split='training',
         pts_prefix='velodyne_reduced',
         pipeline=test_pipeline,
@@ -134,7 +147,7 @@ data = dict(
     test=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file=data_root + '2022-02-18_infos_val.pkl',
+        ann_file=data_root + '2022-03-18-pedestrian_infos_val.pkl',
         split='training',
         pts_prefix='velodyne_reduced',
         pipeline=test_pipeline,

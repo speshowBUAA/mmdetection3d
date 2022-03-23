@@ -94,6 +94,7 @@ def inference_detector(model, pcd):
     device = next(model.parameters()).device  # model device
     # build the data pipeline
     test_pipeline = deepcopy(cfg.data.test.pipeline)
+
     test_pipeline = Compose(test_pipeline)
     box_type_3d, box_mode_3d = get_box_type(cfg.data.test.box_type_3d)
     data = dict(
@@ -113,7 +114,6 @@ def inference_detector(model, pcd):
         mask_fields=[],
         seg_fields=[])
     data = test_pipeline(data)
-
     data = collate([data], samples_per_gpu=1)
     if next(model.parameters()).is_cuda:
         # scatter to specified GPU

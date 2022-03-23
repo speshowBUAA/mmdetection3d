@@ -16,6 +16,8 @@ from mmdet.core import build_bbox_coder
 from mmdet3d.core import anchor, bbox3d2result, build_prior_generator, xywhr2xyxyr, box3d_multiclass_nms, limit_period
 from mmdet3d.core.bbox import get_box_type
 from mmdet3d.apis import init_model
+from prune_model import get_prune_model
+from mmcv.runner import load_checkpoint
 
 class Backbone(nn.Module):
     def __init__(self, cfg):
@@ -40,9 +42,9 @@ class Backbone(nn.Module):
         self.dir_offset = cfg['pts_bbox_head']['dir_offset']
 
     def forward(self, input):
-        x = input[:64*400*400]
-        x = x.reshape(-1, 64, 400, 400)
-        anchors = input[64*400*400:]
+        x = input[:22*200*200]
+        x = x.reshape(-1, 22, 200, 200)
+        anchors = input[22*200*200:]
         anchors = anchors.reshape(-1, 9)
 
         x = self.pts_backbone(x)
@@ -249,9 +251,25 @@ def main():
     voxel_features, raw_feats = model.pts_voxel_encoder(voxels, num_points, coors,
                                             None, img_metas)
 
+    # prune model
+    prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(args.config)
+    model.pts_voxel_encoder = prune_pts_vfe
+    model.pts_middle_encoder = pts_middle_encoder
+    model.pts_backbone = prune_pts_backbone
+    model.pts_neck = pts_neck
+    model.eval()
+
+    # checkpoint = 'work_dirs/hv_pointpillars_secfpn_sbn-all_4x8_2x_custom-3d_slim/epoch_24.pth'
+    checkpoint = 'work_dir_rotscaletrans/epoch_24.pth'
+    load_checkpoint(model, checkpoint, map_location='cpu')
+    backbone_model.pts_backbone = model.pts_backbone
+    backbone_model.pts_neck = model.pts_neck
+    backbone_model.pts_bbox_head = model.pts_bbox_head
+
+    voxel_features = model.pts_voxel_encoder(raw_feats)
     batch_size = coors[-1, 0] + 1
     feature_map = model.pts_middle_encoder(voxel_features, coors, batch_size)
-    anchors = np.load('np_anchors_400x400.npy')
+    anchors = np.load('demo/np_anchors_200x200.npy')
     anchors = torch.from_numpy(anchors).cuda(args.device)
     # print("-----------------ready to export onnx --------------------------")
     print(feature_map.shape)
@@ -264,7 +282,7 @@ def main():
     print(input.shape)
     input_data = input.cpu().detach().numpy()
     # export to onnx
-    export_onnx_file = './pts_backbone.onnx'
+    export_onnx_file = './pts_backbone_prune_rst.onnx'
     torch.onnx.export(backbone_model,
                     input,
                     export_onnx_file,

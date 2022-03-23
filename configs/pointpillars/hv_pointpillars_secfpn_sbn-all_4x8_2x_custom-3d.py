@@ -47,6 +47,7 @@ model = dict(
 
 # load_from = 'checkpoints/hv_pointpillars_secfpn_sbn-all_4x8_2x_nus-3d_20200620_230725-0817d270.pth'
 load_from = 'work_dirs/hv_pointpillars_secfpn_sbn-all_4x8_2x_custom-3d_0302/epoch_24.pth'
+# load_from = 'work_dirs/hv_pointpillars_secfpn_sbn-all_4x8_2x_custom-3d_jt/epoch_8.pth'
 
 # Use evaluation interval=2 reduce the number of evaluation timese
 evaluation = dict(interval=24)

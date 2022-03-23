@@ -23,9 +23,9 @@ def cfg_from_yaml_file(cfg_file, config):
 
 def dataloader(cloud_path , boxes_path):
     # cloud = np.loadtxt(cloud_path).reshape(-1,5)
-    # cloud = np.fromfile(cloud_path, dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
+    cloud = np.fromfile(cloud_path, dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
     boxes = np.loadtxt(boxes_path).reshape(-1,7)
-    cloud = np.fromfile(cloud_path, dtype=np.float32, count=-1).reshape([-1,4])
+    # cloud = np.fromfile(cloud_path, dtype=np.float32, count=-1).reshape([-1,4])
     # boxes = np.loadtxt(boxes_path).reshape(-1,9)[:, :7]
     return cloud , boxes 
 
@@ -42,9 +42,9 @@ def remove_ground(cloud):
 def main():
     # cloud_path = '/data/bags/bin/1642667837101218365.bin'
     # cloud_path = "../data/2022-02-18/training/velodyne_reduced/1645148890102077243.bin"
-    cloud_path = "../1645149038405880068.bin"
-    # boxes_path = '../boxes.txt'
-    boxes_path = '../gt_boxes.txt'
+    cloud_path = "../1645179542771259609.bin"
+    boxes_path = '../boxes.txt'
+    # boxes_path = '../gt_boxes.txt'
     cloud ,boxes = dataloader(cloud_path, boxes_path)
     draw_clouds_with_boxes(cloud ,boxes)
 
@@ -107,12 +107,13 @@ def test():
     # print(cloud.shape)
     # draw_clouds(cloud)
 
-    path = "../data/2022-02-18/training/velodyne_reduced/1645148890102077243.bin"
+    path = "../data/2022-02-18/training/velodyne/1645148890102077243.bin"
     cloud = np.fromfile(path, dtype=np.float32, count=-1)
     cloud = cloud.reshape([-1,4])
+    print(cloud.shape)
 
-    draw_clouds(cloud)
+    # draw_clouds(cloud)
 
 if __name__ == "__main__":
-    # main()
-    test()
+    main()
+    # test()

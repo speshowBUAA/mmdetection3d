@@ -38,20 +38,25 @@ def get_occluded(pcd, anno):
     return occlude
 
 def main():
-    dir_list = ['2022-01-20', '2022-02-18-09-40-26_3', '2022-02-18-09-40-49_4', '2022-02-18-09-41-11_5',
-                '2022-02-18-09-43-10_10',
-                '2022-02-18-09-47-21_21', '2022-02-18-09-47-43_22', '2022-02-18-09-48-06_23',
-                '2022-02-18-09-48-28_24', '2022-02-18-09-48-51_25', '2022-02-18-09-49-14_26',
-                '2022-02-18-09-49-36_27', '2022-02-18-09-49-59_28', '2022-02-18-09-50-21_29',
-                '2022-02-18-09-50-44_30', '2022-02-18-09-51-05_31', '2022-02-18-09-51-25_32',
-                '2022-02-18-09-51-46_33', '2022-02-18-09-52-07_34', '2022-02-18-09-52-28_35',
-                '2022-02-18-09-52-51_36', '2022-02-18-09-53-14_37', '2022-02-18-09-53-36_38']
+    # dir_list = ['2022-01-20', '2022-02-18-09-40-26_3', '2022-02-18-09-40-49_4', '2022-02-18-09-41-11_5',
+    #             '2022-02-18-09-43-10_10',
+    #             '2022-02-18-09-47-21_21', '2022-02-18-09-47-43_22', '2022-02-18-09-48-06_23',
+    #             '2022-02-18-09-48-28_24', '2022-02-18-09-48-51_25', '2022-02-18-09-49-14_26',
+    #             '2022-02-18-09-49-36_27', '2022-02-18-09-49-59_28', '2022-02-18-09-50-21_29',
+    #             '2022-02-18-09-50-44_30', '2022-02-18-09-51-05_31', '2022-02-18-09-51-25_32',
+    #             '2022-02-18-09-51-46_33', '2022-02-18-09-52-07_34', '2022-02-18-09-52-28_35',
+    #             '2022-02-18-09-52-51_36', '2022-02-18-09-53-14_37', '2022-02-18-09-53-36_38']
     # dir_list = ['2022-02-18-09-48-06_23']
+    # dir_list = ['2022-03-01-17-35-07', '2022-03-01-17-37-53', '2022-03-01-17-40-35', '2022-03-02-13-40-38',
+    #             '2022-03-02-13-43-18']
+    dir_list = ['2022-03-18-14-12-09_0', '2022-03-18-14-12-34_1', '2022-03-18-14-13-00_2', '2022-03-18-14-13-25_3',
+                '2022-03-18-14-13-50_4', '2022-03-18-14-14-16_5', '2022-03-18-14-14-41_6']
 
-    data_root = '/home/yexiubo/project/SUSTechPOINTS/data_02_18/'
-    pcd_root = '/data/2022-02-18-merge/'
-    output_dir = '/data/privatedata/2022-02-18/total'
+    data_root = '/home/yexiubo/project/SUSTechPOINTS/data_03_18/'
+    pcd_root = '/data/2022-03-18/'
+    output_dir = '/data/privatedata/2022-03-18/total/'
     total_annos = []
+    
     obj_type = dict()
     for _dir in tqdm(dir_list):
         annos = os.listdir(os.path.join(data_root, _dir, 'label'))
@@ -94,34 +99,34 @@ def main():
                     b_y1 = 50
                     kitti_label_str = '{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}'.format(anno_data[i]['obj_type'], 0, occlude[i], 0,
                     b_x0,b_y0,b_x1,b_y1,h,w,l,x,y,z,yaw,1)
-                    # f.write(kitti_label_str + '\n')
+                    f.write(kitti_label_str + '\n')
                     if anno_data[i]['obj_type'] not in obj_type.keys():
                         obj_type[anno_data[i]['obj_type']] = 0
                     else:
                         obj_type[anno_data[i]['obj_type']] = obj_type[anno_data[i]['obj_type']] + 1
             
             new_pcd_path = os.path.join(output_dir,'velodyne', anno.replace('json', 'bin'))
-            # shutil.copyfile(pcd_path, new_pcd_path)
-            # pcd.tofile(new_pcd_path)       
+            shutil.copyfile(pcd_path, new_pcd_path)
+            pcd.tofile(new_pcd_path)
         total_annos.extend(annos)
     print(obj_type)
     print(len(total_annos))
 
 def trans_sustech():
-    label_dir = '/home/yexiubo/project/SUSTechPOINTS/data_02_18_test/pred/label'
-    lidar_dir = '/home/yexiubo/project/SUSTechPOINTS/data_02_18_test/pred/lidar'
-    bbox_dir = '/data/privatedata/2022-02-18/testing/pred_2/'
-    bin_dir = '/data/privatedata/2022-02-18/testing/velodyne/'
+    label_dir = '/data/data_02_18_test/nusc/label'
+    lidar_dir = '/data/data_02_18_test/nusc/lidar'
+    bbox_dir = '/data/privatedata/2022-02-18+nusc-mini/total/label_2/'
+    bin_dir = '/data/privatedata/2022-02-18+nusc-mini/total/velodyne/'
 
-    # #generate pcd files
-    # for binfile in tqdm(os.listdir(bin_dir)):
-    #     pts = np.fromfile(os.path.join(bin_dir, binfile), dtype=np.float32, count=-1).reshape(-1, 4)
-    #     pc = o3d.geometry.PointCloud()
-    #     pc.points = o3d.utility.Vector3dVector(pts[:,:3])
-    #     if not os.path.exists(lidar_dir):
-    #         os.makedirs(lidar_dir)
-    #     pcd_file = os.path.join(lidar_dir, binfile.replace('.bin', '.pcd'))
-    #     o3d.io.write_point_cloud(pcd_file, pc)
+    #generate pcd files
+    for binfile in tqdm(os.listdir(bin_dir)):
+        pts = np.fromfile(os.path.join(bin_dir, binfile), dtype=np.float32, count=-1).reshape(-1, 4)
+        pc = o3d.geometry.PointCloud()
+        pc.points = o3d.utility.Vector3dVector(pts[:,:3])
+        if not os.path.exists(lidar_dir):
+            os.makedirs(lidar_dir)
+        pcd_file = os.path.join(lidar_dir, binfile.replace('.bin', '.pcd'))
+        o3d.io.write_point_cloud(pcd_file, pc)
 
     for file in os.listdir(bbox_dir):
         result_list = []
@@ -176,6 +181,6 @@ def generate_check():
 
 
 if __name__ == '__main__':
-    # main()
-    trans_sustech()
-    generate_check()
+    main()
+    # trans_sustech()
+    # generate_check()

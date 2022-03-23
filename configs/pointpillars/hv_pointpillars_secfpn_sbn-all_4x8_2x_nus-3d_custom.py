@@ -1,6 +1,7 @@
 _base_ = [
     '../_base_/models/hv_pointpillars_fpn_nus.py',
     '../_base_/datasets/nus-3d-custom.py',
+    # '../_base_/datasets/nus-3d.py',
     '../_base_/schedules/schedule_2x.py',
     '../_base_/default_runtime.py',
 ]
@@ -9,9 +10,12 @@ model = dict(
     pts_voxel_layer=dict(
         max_num_points=64,
         point_cloud_range = [-25, -25, -5, 25, 25, 3],
-        max_voxels=(30000, 5000)),
+        # point_cloud_range = [-50, -50, -5, 50, 50, 3],
+        # max_voxels=(30000, 5000)),
+        max_voxels=(30000, 40000)),
     pts_voxel_encoder = dict(
         point_cloud_range = [-25, -25, -5, 25, 25, 3],
+        # point_cloud_range = [-50, -50, -5, 50, 50, 3],
         norm_cfg=dict(type='BN1d', eps=1e-3, momentum=0.01)),
     pts_middle_encoder=dict(
         type='PointPillarsScatter', in_channels=64, output_shape=[200, 200]),

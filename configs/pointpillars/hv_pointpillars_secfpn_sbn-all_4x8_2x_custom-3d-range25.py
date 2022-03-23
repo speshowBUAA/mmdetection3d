@@ -64,13 +64,14 @@ model = dict(
             rotations=[0, 1.57],
             reshape_out=True)))
 
-load_from = 'checkpoints/hv_pointpillars_secfpn_sbn-all_4x8_2x_nus-3d_20200620_230725-0817d270.pth'
+# load_from = 'checkpoints/hv_pointpillars_secfpn_sbn-all_4x8_2x_nus-3d_20200620_230725-0817d270.pth'
+load_from = 'work_dir_rotscaletrans/epoch_24.pth'
 
 # Use evaluation interval=2 reduce the number of evaluation timese
-evaluation = dict(interval=1)
+evaluation = dict(interval=25)
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=0.01)
 
 # #custom hook config
 # custom_hooks = [
-#     dict(type='PytorchProfilerHook')
+#     dict(type='PytorchProfilerHook')  
 # ]

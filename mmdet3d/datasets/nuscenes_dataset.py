@@ -417,7 +417,7 @@ class NuScenesDataset(Custom3DDataset):
                 val = float('{:.4f}'.format(v))
                 detail['{}/{}'.format(metric_prefix,
                                       self.ErrNameMapping[k])] = val
-
+                                      
         detail['{}/NDS'.format(metric_prefix)] = metrics['nd_score']
         detail['{}/mAP'.format(metric_prefix)] = metrics['mean_ap']
         return detail

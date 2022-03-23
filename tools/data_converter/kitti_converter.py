@@ -40,7 +40,8 @@ def convert_to_kitti_info_version2(info):
 def _read_imageset_file(path):
     with open(path, 'r') as f:
         lines = f.readlines()
-    return [int(line) for line in lines]
+    # return [int(line) for line in lines]
+    return [line.strip() for line in lines]
 
 
 def _calculate_num_points_in_gt(data_path,

@@ -238,7 +238,7 @@ class DataBaseSampler(object):
                             [s['box3d_lidar'] for s in sampled_cls], axis=0)
 
                     sampled_gt_bboxes += [sampled_gt_box]
-                    sampled_gt_box = np.concatenate([sampled_gt_box, np.zeros([sampled_gt_box.shape[0], 2])], axis=-1) # custom
+                    # sampled_gt_box = np.concatenate([sampled_gt_box, np.zeros([sampled_gt_box.shape[0], 2])], axis=-1) # custom
                     avoid_coll_boxes = np.concatenate(
                         [avoid_coll_boxes, sampled_gt_box], axis=0)
 
@@ -297,7 +297,7 @@ class DataBaseSampler(object):
             gt_bboxes[:, 0:2], gt_bboxes[:, 3:5], gt_bboxes[:, 6])
 
         sp_boxes = np.stack([i['box3d_lidar'] for i in sampled], axis=0)
-        sp_boxes = np.concatenate([sp_boxes, np.zeros([sp_boxes.shape[0], 2])], axis=-1) # custom
+        # sp_boxes = np.concatenate([sp_boxes, np.zeros([sp_boxes.shape[0], 2])], axis=-1) # custom
         boxes = np.concatenate([gt_bboxes, sp_boxes], axis=0).copy()
 
         sp_boxes_new = boxes[gt_bboxes.shape[0]:]

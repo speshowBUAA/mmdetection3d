@@ -15,6 +15,7 @@ from mmdet3d.core.bbox import get_box_type
 import numpy as np
 import onnx
 import onnxruntime
+from prune_model import get_prune_model
 
 class VFELayer(nn.Module):
     """Voxel Feature Encoder layer.
@@ -270,10 +271,25 @@ def main():
     
     v_features = pts_voxel_encoder(raw_feats)
 
-    # dummy_input = torch.ones(config.model['pts_voxel_layer']['max_voxels'][1], config.model['pts_voxel_layer']['max_num_points'] , pts_voxel_encoder.in_channels).cuda()
-    export_onnx_file = './pts_vfe_encoder.onnx'
-    torch.onnx.export(pts_voxel_encoder,
-                    raw_feats,
+    # prune model
+    prune_pts_vfe, pts_middle_encoder, prune_pts_backbone, pts_neck = get_prune_model(args.config)
+    model.pts_voxel_encoder = prune_pts_vfe
+    model.pts_middle_encoder = pts_middle_encoder
+    model.pts_backbone = prune_pts_backbone
+    model.pts_neck = pts_neck
+    model.eval()
+
+    # checkpoint = 'work_dirs/hv_pointpillars_secfpn_sbn-all_4x8_2x_custom-3d_slim/epoch_24.pth'
+    checkpoint = 'work_dir_rotscaletrans/epoch_24.pth'
+    load_checkpoint(model, checkpoint, map_location='cpu')
+
+    # export to onnx
+    if isinstance(args.config, str):
+        config = mmcv.Config.fromfile(args.config)
+    dummy_input = torch.ones(config.model['pts_voxel_layer']['max_voxels'][1], config.model['pts_voxel_layer']['max_num_points'] , prune_pts_vfe.in_channels).cuda()
+    export_onnx_file = './pts_vfe_prune_rst_encoder.onnx'
+    torch.onnx.export(model.pts_voxel_encoder,
+                    dummy_input,
                     export_onnx_file,
                     opset_version=12,
                     verbose=True,
@@ -281,5 +297,21 @@ def main():
 
     onnx.save(onnx.shape_inference.infer_shapes(onnx.load(export_onnx_file)), export_onnx_file)
 
+def test_VFE():
+    vfe0 = VFELayer(10,1)
+    vfe0.to('cuda:0').eval()
+    dummy_input = torch.ones(5000, 64, 10).cuda()
+    export_onnx_file = './test_vfe0.onnx'
+    torch.onnx.export(vfe0, dummy_input, export_onnx_file, opset_version=12, verbose=True, do_constant_folding=True)
+    onnx.save(onnx.shape_inference.infer_shapes(onnx.load(export_onnx_file)), export_onnx_file)
+    
+    vfe1 = VFELayer(2,1, cat_max=False)
+    vfe1.to('cuda:0').eval()
+    dummy_input = torch.ones(5000, 64, 2).cuda()
+    export_onnx_file = './test_vfe1.onnx'
+    torch.onnx.export(vfe1, dummy_input, export_onnx_file, opset_version=12, verbose=True, do_constant_folding=True)
+    onnx.save(onnx.shape_inference.infer_shapes(onnx.load(export_onnx_file)), export_onnx_file)
+
 if __name__ == '__main__':
     main()
+    # test_VFE()

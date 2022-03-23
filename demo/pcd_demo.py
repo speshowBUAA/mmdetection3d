@@ -74,7 +74,7 @@ def demo():
     parser.add_argument('config', help='Config file')
     parser.add_argument('checkpoint', help='Checkpoint file')
     parser.add_argument(
-        '--device', default='cuda:0', help='Device used for inference')
+        '--device', default='cuda:1', help='Device used for inference')
     parser.add_argument('--ext', type=str, default='.bin', help='specify the extension of your point cloud data file')
     parser.add_argument('--data_path', type=str, default='demo_data',
                         help='specify the point cloud data file or directory')
@@ -87,7 +87,7 @@ def demo():
     data_file_list = glob.glob(str(root_path / f'*{ext}')) if root_path.is_dir() else [root_path]
 
     # build the model from a config file and a checkpoint file
-    model = init_model(args.config, args.checkpoint, device=args.device)
+    model = init_model(args.config, args.checkpoint, device=args.device, prune_model=True)
 
     for data_path in tqdm(data_file_list):
         # test a single image
@@ -99,7 +99,7 @@ def demo():
         results[data_path] = pred_results
         pts_filename = data['img_metas'][0][0]['pts_filename']
         data['img_metas'][0][0]['pts_filename'] = 'mmdet3d_' + osp.split(pts_filename)[-1]
-    result_file = args.data_path.split('/')[3] + '_0.npy'
+    result_file = args.data_path.split('/')[3] + '_1.npy'
     np.save(result_file, results)
 
     # # kitti_format

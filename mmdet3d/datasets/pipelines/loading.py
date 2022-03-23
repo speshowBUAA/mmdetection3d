@@ -365,8 +365,8 @@ class LoadPointsFromFile(object):
         self.use_color = use_color
         if isinstance(use_dim, int):
             use_dim = list(range(use_dim))
-        assert max(use_dim) < load_dim, \
-            f'Expect all used dimensions < {load_dim}, got {use_dim}'
+        # assert max(use_dim) < load_dim, \
+        #     f'Expect all used dimensions < {load_dim}, got {use_dim}'
         assert coord_type in ['CAMERA', 'LIDAR', 'DEPTH']
 
         self.coord_type = coord_type
@@ -413,6 +413,11 @@ class LoadPointsFromFile(object):
         pts_filename = results['pts_filename']
         points = self._load_points(pts_filename)
         points = points.reshape(-1, self.load_dim)
+
+        # custom
+        if max(self.use_dim) >= self.load_dim:
+            points = np.concatenate((points, np.zeros((points.shape[0], 1))), axis=1)
+
         points = points[:, self.use_dim]
         points[:, 3] = 0 # custom
         attribute_dims = None
